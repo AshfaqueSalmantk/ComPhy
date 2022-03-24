@@ -8,10 +8,10 @@ from libc.math cimport sqrt,fabs, int, exp
 
 
 
-#@cython.wraparound(False)
+@cython.wraparound(False)
 @cython.boundscheck(False)
 @cython.cdivision(True)
-#@cython.nonecheck(False)
+@cython.nonecheck(False)
 cdef class Ising2D():
 
     cdef int N, nt, eqSteps,mcSteps
@@ -31,32 +31,38 @@ cdef class Ising2D():
         self.nt = nt
         self.eqSteps = eqSteps
         self.mcSteps = mcSteps
+        self.expfunc = np.zeros((2),dtype=np.float64)
 
 
-    cpdef simTwoD(self, double Temp):
-        ''' calculate final microstate for a given temperature'''
-        N = self.N
-        cdef np.ndarray[long,ndim=2] state
-        cdef double n1,M1,mag
-        cdef int i
+    cpdef twoD(self, double iT):
+        cdef int i,j
+        cdef double M1,n1,Mag
 
-        state = 2*np.random.randint(2,size=(N,N))-1
-        n1 = 1.0/(N*N*self.mcSteps)
+        print("inside twoD")
 
+        n1 = 1.0/(self.N*self.N*self.mcSteps)
+        M1 = 0
+
+        # initialise the state using numpy
+        state = 2*np.random.randint(2,size=(self.N,self.N))-1
+
+
+        # thermalization
         for i in range(self.eqSteps):
-            self.mcmove(state,1/Temp)
+            self.mcMove(state,1/iT)
 
-        for i in range(self.mcSteps):
-            self.mcmove(state,1/Temp)
-            mag = self.calcMag(state)
-            M1 = M1 + mag
-        print(state)
+        # montecarlo steps for calculation of order parameters
+        for j in range(self.mcSteps):
+            self.mcMove(state,1/iT)
+
+            Mag = self.calcMag(state)
+            M1 = M1 + Mag
 
         return M1*n1
 
-    cdef int mcmove(self, np.ndarray[long,ndim=2] state, double beta):
+    cdef mcMove(self, state , double beta):
 
-        cdef int i,j,a,b,dE
+        cdef int i,j,a,b,cost
         cdef double [:] expfunc = self.expfunc
 
         expfunc[1] = exp(-4*beta)
@@ -64,37 +70,19 @@ cdef class Ising2D():
 
         for i in range(self.N):
             for j in range(self.N):
-                a,b = np.random.randint(0,self.N),np.random.randint(0,self.N)
+                a,b = np.random.randint(self.N),np.random.randint(self.N)
 
-                state[0,b] = state[self.N,b]; state[self.N+1,b] = state[1,b];
-                state[a,0] = state[a,self.N]; state[a,self.N+1] = state[a,1];
+                cost = 2*state[a,b]*(state[(a+1)%self.N,b]+state[(a-1)%self.N,b]+state[a,(b+1)%self.N]+state[a,(b-1)%self.N])
 
-                dE = 2*state[a,b]*(state[a+1,b]+state[a-1,b]+state[a,b+1]+state[a,b-1])
+                if cost <= 0 or np.random.rand() < expfunc[cost/4]:
+                    state[a,b] = -state[a,b]
 
-                if (dE <=0 or (np.random.random()<expfunc[dE//4])):
-                        state[a,b] = -state[a,b]
+        return state
 
-        return 0
 
-    cdef double calcMag(self,np.ndarray[long,ndim=2] state):
+    cdef double calcMag(self, state):
 
         return np.sum(state)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

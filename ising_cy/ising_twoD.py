@@ -29,15 +29,19 @@ def main():
     # initialize the class with parameters
     Ising = ising.Ising2D(N,nt,eqSweep,mcSweep)
 
-    # time calculating for the program
-    start= time.time()
-    Mag  = parallel_sim(Ising.simTwoD,T)
-    end  = time.time()
+    M = np.zeros(nt)
+
+    start = time.time()
+    Mag = parallel_sim(Ising.twoD,T)
+    end = time.time()
+    #time calculating for the program
     print(f"time taken for normal computation:{end-start}")
 
     #plot the data
     f = plt.figure(1,figsize=(8,6))
     plt.scatter(T,Mag)
+    plt.xlabel('temp')
+    plt.ylabel('mag')
     plt.savefig("mag.png")
     plt.show()
 
