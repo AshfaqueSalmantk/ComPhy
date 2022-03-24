@@ -38,7 +38,7 @@ cdef class Ising2D():
         cdef int i,j
         cdef double M1,n1,Mag
 
-        print("inside twoD")
+
 
         n1 = 1.0/(self.N*self.N*self.mcSteps)
         M1 = 0
